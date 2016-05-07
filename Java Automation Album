@@ -1,0 +1,168 @@
+import com.google.common.annotations.VisibleForTesting;
+import org.junit.*;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.firefox.FirefoxDriver;
+
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Created by lenovo on 07/05/2016.
+ */
+public class TestPhotoAlbum {
+
+    private static final String DEFAULT_PASSWORD = "123";
+    //will contain the unique username which was generate
+    private String currentUsername;
+    private String currentCategory;
+    private String currentAlbum;
+
+    private WebDriver driver;
+
+
+    @Before //is running before every test
+    public void setUp(){
+        this.driver = new FirefoxDriver();
+        this.driver.get("http://localhost/PhotoAlbum/home/index");
+        this.driver.manage().timeouts().implicitlyWait(1000, TimeUnit.MILLISECONDS);
+    }
+
+    private void register(){
+        this.driver.get("http://localhost/PhotoAlbum/users/register");
+        WebElement usernameField = this.driver.findElement(By.id("inputUserName"));
+        WebElement passwordField = this.driver.findElement(By.id("inputPassword"));
+        //unique ID generator
+        String uniqueUsername = UUID.randomUUID().toString();
+        //unique pass and username
+        usernameField.sendKeys(uniqueUsername);
+        passwordField.sendKeys(DEFAULT_PASSWORD);
+        //save the unique username in private string
+        this.currentUsername = uniqueUsername;
+
+        WebElement registerButton = this.driver.findElement(By.name("register"));
+        //click the register button and finish registration
+        registerButton.click();
+    }
+
+    //method which accepting parameters
+    private void login(String username, String password){
+        this.driver.get("http://localhost/PhotoAlbum/users/login");
+        WebElement usernameField = this.driver.findElement(By.id("inputUserName"));
+        WebElement passwordField = this.driver.findElement(By.id("inputPassword"));
+        WebElement loginButton = this.driver.findElement(By.name("login"));
+
+        usernameField.sendKeys(username);
+        passwordField.sendKeys(password);
+
+        loginButton.click();
+    }
+
+    // private String currentUsername; on TOP hold the name
+    private void createCategory(){
+        this.login("admin", "admin");
+        this.driver.get("http://localhost/PhotoAlbum/categories/add");
+
+        WebElement categoryNameField = this.driver.findElement(By.name("name"));
+        String uniqueCategory = UUID.randomUUID().toString();
+        this.currentCategory = uniqueCategory;
+
+        categoryNameField.sendKeys(uniqueCategory);
+
+        WebElement createCategoryButton = this.driver.findElement(By.name("create"));
+
+        createCategoryButton.click();
+        this.logout();
+    }
+
+    private void logout(){
+        this.driver.get("http://localhost/PhotoAlbum/users/logout");
+    }
+
+    private void createAlbum(String categoryName){
+        this.driver.get("http://localhost/PhotoAlbum/albums/add");
+
+        WebElement albumNameField = this.driver.findElement(By.name("name"));
+        WebElement categoryNameField = this.driver.findElement(By.name("categoryName"));
+        WebElement descriptionField = this.driver.findElement(By.name("description"));
+        WebElement createAlbumButton = this.driver.findElement(By.name("create"));
+
+        String uniqueAlbul = UUID.randomUUID().toString();
+        this.currentAlbum = uniqueAlbul;
+        String description = "aa";
+
+        albumNameField.sendKeys(currentAlbum);
+        categoryNameField.sendKeys(categoryName);
+        descriptionField.sendKeys(description);
+
+        createAlbumButton.click();
+    }
+
+    //***Navigate and find the created Album / use List and For
+    public void navigateToAlbum(String albumName){
+        this.driver.get("http://localhost/PhotoAlbum/albums/showall");
+        List<WebElement> albumNamesElements = this.driver.findElements(By.className("album-title"));
+
+        for (WebElement albumNameElement : albumNamesElements){
+            if (albumNameElement.getText().equals(albumName)){
+                albumNameElement.click();
+                break;
+            }
+        }
+    }
+
+    private void navigeteToComment(){
+        WebElement commentButton = this.driver.findElement(By.xpath("/html/body/div/div[4]/div/span[2]/a"));
+        commentButton.click();
+    }
+
+    private void creatComment(String commentText){
+        WebElement commentTextField = this.driver.findElement(By.name("comment"));
+        commentTextField.sendKeys(commentText);
+
+        WebElement createCommentButton = this.driver.findElement(By.name("create"));
+        createCommentButton.click();
+    }
+
+    /*@Test  //not valid because there is XSS script and brake the test
+    public void testComment_withoutLoggedUser_expectedErrorBox(){
+        this.createCategory();
+        this.register();
+        this.login(this.currentUsername, DEFAULT_PASSWORD);
+        this.createAlbum(this.currentCategory);
+        this.logout();
+        this.navigateToAlbum(this.currentAlbum);
+        this.navigeteToComment();
+        this.creatComment("nov text");
+
+        WebElement errorBox = this.driver.findElement(By.xpath("/html/body/div/form/div/div[2]"));
+        Assert.assertEquals("You are not logged in", errorBox.getText());
+    }*/
+
+    @Test
+    public void testComment_loggedUserValidText_expectedCommentAdded(){
+        this.createCategory();
+        this.register();
+        this.login(this.currentUsername, this.DEFAULT_PASSWORD);
+        this.createAlbum(this.currentCategory);
+        this.navigateToAlbum(this.currentAlbum);
+        this.navigeteToComment();
+        this.creatComment("nov text");
+    }
+
+    @After
+    public void tearDown(){
+        this.driver.quit();
+    }
+
+
+
+
+
+
+
+
+}
+
